@@ -29,40 +29,18 @@
 
 
 # EDIT THESE USER VALUES
-uname=user      # your username
-notify=yes      # do you want a notification OSD? ( yes / no )
-engine=festival # which speech engine you use     ( festival / google )
+TTY=""              # tty
+COLOR="38;05;4"     # font color
 
-pid=$( pgrep -u ${uname} gnome-session )
-dbus=$( grep -z DBUS_SESSION_BUS_ADDRESS /proc/${pid}/environ | sed 's/DBUS_SESSION_BUS_ADDRESS=//' )
-
-export DISPLAY=:0
-export XAUTHORITY=/home/${uname}/.Xauthority
-export DBUS_SESSION_BUS_ADDRESS=$dbus
-
-TIME_H_NOW=`/usr/bin/date '+%H' | sed -e 's/0\([0-9]\)/\1/g'`
-TIME_M_NOW=`/usr/bin/date '+%M'`
+TIME_H_NOW=`date '+%H' | sed -e 's/0\([0-9]\)/\1/g'`
+TIME_M_NOW=`date '+%M'`
 TITLE="${TIME_H_NOW}:${TIME_M_NOW}"
 
-if [ ${TIME_M_NOW} = '00' ]
-then
-	BODY="It's ${TIME_H_NOW} o'clock."
-else
-	BODY="It's ${TIME_H_NOW}:${TIME_M_NOW}."
-fi
+test ${TIME_M_NOW} -eq '00'                 &&
+         BODY="It's ${TIME_H_NOW} o'clock." ||
+         BODY="It's ${TIME_H_NOW}:${TIME_M_NOW}."
 
-if [ ${notify} = 'yes' ]
-then
-	sudo -u ${uname} /usr/bin/notify-send "${TITLE}" "${BODY}"
-fi
+test -w ${TTY}  &&
+    printf "[${COLOR}m${TITLE} ${BODY}[0m\n" > ${TTY}
 
-SPEECH_TEXT=`echo ${BODY} | sed -e "s/0\([0-9]\)/\1/g" -e "s/:/,/"`
-if [ ${engine} = 'festival' ]
-then
-	echo ${SPEECH_TEXT} | sudo -u ${uname} /usr/bin/festival --tts
-else
-	TTS_URL=`echo "http://translate.google.com/translate_tts?tl=en&q=${SPEECH_TEXT}" | sed -e "s/ /+/g"`
-	wget ${TTS_URL} -q -U Mozilla -O /tmp/_time_notify_tmp.mp3
-	sudo -u ${uname} /usr/bin/mpg123 /tmp/_time_notify_tmp.mp3
-fi
-
+exit $?
